@@ -1,24 +1,37 @@
 import json
-import os
+import boto3
+from io import BytesIO
 
-folder = "bls_data"
-files_folder = os.path.join(folder, "files")
-meta_file = os.path.join(folder, "metadata.json")
+# S3 config
+BUCKET_NAME = "rearc-quest-brandon"
+PREFIX = "bls-files/"
+FILES_PREFIX = PREFIX + "files/"
+METADATA_KEY = PREFIX + "metadata.json"
 
-with open(meta_file, "r") as f:
-    data = json.load(f)
+s3 = boto3.client("s3")
+
+# Load existing metadata from S3
+try:
+    response = s3.get_object(Bucket=BUCKET_NAME, Key=METADATA_KEY)
+    data = json.load(response["Body"])
+except s3.exceptions.NoSuchKey:
+    data = []
 
 # 1. Add a fake new file
+fake_filename = "pr.fake.new"
 data.append({
-    "file_name": "pr.fake.new",
-    "url": "https://download.bls.gov/pub/time.series/pr/pr.fake.new",
+    "file_name": fake_filename,
+    "url": f"https://download.bls.gov/pub/time.series/pr/{fake_filename}",
     "last_updated_date": "5/23/2025",
     "last_updated_time": "1:00 PM",
     "last_updated_timestamp": "2025-05-23T13:00:00",
     "file_size_bytes": 1234
 })
-with open(os.path.join(files_folder, "pr.fake.new"), "w") as f:
-    f.write("fake data")
+s3.put_object(
+    Bucket=BUCKET_NAME,
+    Key=FILES_PREFIX + fake_filename,
+    Body=b"fake data"
+)
 
 # 2. Change timestamp on existing file
 for item in data:
@@ -27,12 +40,16 @@ for item in data:
 
 # 3. Remove a valid file entry
 data = [d for d in data if d["file_name"] != "pr.series"]
-series_path = os.path.join(files_folder, "pr.series")
-if os.path.exists(series_path):
-    os.remove(series_path)
+try:
+    s3.delete_object(Bucket=BUCKET_NAME, Key=FILES_PREFIX + "pr.series")
+except s3.exceptions.ClientError:
+    pass  # Ignore if already deleted
 
-# Save changes
-with open(meta_file, "w") as f:
-    json.dump(data, f, indent=2)
+# Save updated metadata to S3
+s3.put_object(
+    Bucket=BUCKET_NAME,
+    Key=METADATA_KEY,
+    Body=json.dumps(data, indent=2).encode("utf-8")
+)
 
-print("Simulated add (pr.fake.new), update (pr.class), and removal (pr.series).")
+print("Simulated add (pr.fake.new), update (pr.class), and removal (pr.series) in S3.")

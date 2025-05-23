@@ -1,30 +1,27 @@
-import os
 import requests
 import json
 import re
 from bs4 import BeautifulSoup
 from datetime import datetime
+import boto3
+import os
 
 # Configuration
 BASE_URL = "https://download.bls.gov/pub/time.series/pr/"
-LOCAL_FOLDER = "bls_data"
-FILES_SUBDIR = "files"
-FILES_FOLDER = os.path.join(LOCAL_FOLDER, FILES_SUBDIR)
-METADATA_FILE = "metadata.json"
+BUCKET_NAME = "rearc-quest-brandon"
+S3_PREFIX = "bls-files/"  # Optional subfolder in the bucket
 CONTACT_INFO = "Brandon Young (brandon@jsbsolutions.io)"
 USER_AGENT = f"DataSyncBot/1.0 ({CONTACT_INFO})"
 HEADERS = {"User-Agent": USER_AGENT}
 
-# Ensure folders exist
-os.makedirs(LOCAL_FOLDER, exist_ok=True)
-os.makedirs(FILES_FOLDER, exist_ok=True)
+# Initialize S3
+s3 = boto3.client("s3")
 
-# Load existing metadata
-metadata_path = os.path.join(LOCAL_FOLDER, METADATA_FILE)
-if os.path.exists(metadata_path):
-    with open(metadata_path, "r") as f:
-        old_metadata = {item["file_name"]: item for item in json.load(f)}
-else:
+# Load existing metadata (from S3)
+try:
+    obj = s3.get_object(Bucket=BUCKET_NAME, Key=S3_PREFIX + "metadata.json")
+    old_metadata = {item["file_name"]: item for item in json.load(obj["Body"])}
+except s3.exceptions.NoSuchKey:
     old_metadata = {}
 
 # Scrape live directory
@@ -47,9 +44,8 @@ for a_tag in pre_block.find_all("a"):
         continue
 
     file_url = BASE_URL + file_name
-    file_path = os.path.join(FILES_FOLDER, file_name)
+    s3_key = S3_PREFIX + "files/" + file_name
 
-    # Parse date, time, and size from sibling text
     sibling = a_tag.find_next_sibling(string=True)
     date_str, time_str, file_size, timestamp = "", "", None, None
     if sibling:
@@ -60,20 +56,17 @@ for a_tag in pre_block.find_all("a"):
             dt = datetime.strptime(f"{date_str} {time_str}", "%m/%d/%Y %I:%M %p")
             timestamp = dt.isoformat()
 
-    # Determine if the file should be downloaded
     existing = old_metadata.get(file_name)
-    should_download = (
+    should_upload = (
         existing is None or
-        existing.get("last_updated_timestamp") != timestamp or
-        not os.path.exists(file_path)
+        existing.get("last_updated_timestamp") != timestamp
     )
 
-    if should_download:
-        print(f"Downloading: {file_name}")
+    if should_upload:
+        print(f"Uploading: {file_name}")
         file_response = requests.get(file_url, headers=HEADERS)
         if file_response.status_code == 200:
-            with open(file_path, "wb") as f:
-                f.write(file_response.content)
+            s3.put_object(Bucket=BUCKET_NAME, Key=s3_key, Body=file_response.content)
         else:
             print(f"Failed to download {file_name}")
             continue
@@ -87,16 +80,15 @@ for a_tag in pre_block.find_all("a"):
         "file_size_bytes": file_size
     }
 
-# Remove deleted files from disk
+# Delete removed files from S3
 deleted_files = set(old_metadata) - set(new_metadata)
 for file_name in deleted_files:
-    local_path = os.path.join(FILES_FOLDER, file_name)
-    if os.path.exists(local_path):
-        print(f"Removing deleted file: {file_name}")
-        os.remove(local_path)
+    s3_key = S3_PREFIX + "files/" + file_name
+    print(f"Deleting removed file from S3: {file_name}")
+    s3.delete_object(Bucket=BUCKET_NAME, Key=s3_key)
 
-# Save updated metadata
-with open(metadata_path, "w") as f:
-    json.dump(list(new_metadata.values()), f, indent=2)
+# Upload updated metadata.json
+metadata_json = json.dumps(list(new_metadata.values()), indent=2)
+s3.put_object(Bucket=BUCKET_NAME, Key=S3_PREFIX + "metadata.json", Body=metadata_json.encode("utf-8"))
 
-print(f"Sync complete. {len(new_metadata)} files current.")
+print(f"Sync complete. {len(new_metadata)} files now in S3.")
