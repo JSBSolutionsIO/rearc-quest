@@ -1,0 +1,58 @@
+AWSTemplateFormatVersion: '2010-09-09'
+Description: Deploy a combined Lambda to run BLS and DataUSA sync in one step
+
+Parameters:
+  BucketName:
+    Type: String
+    Description: Name of the S3 bucket holding Lambda ZIPs and storing synced data
+  S3Prefix:
+    Type: String
+    Default: ""
+    Description: Optional prefix for Lambda ZIPs and data storage
+
+Resources:
+
+  CombinedLambdaExecutionRole:
+    Type: AWS::IAM::Role
+    Properties:
+      RoleName: CombinedDataSyncLambdaRole
+      AssumeRolePolicyDocument:
+        Version: "2012-10-17"
+        Statement:
+          - Effect: Allow
+            Principal:
+              Service: lambda.amazonaws.com
+            Action: sts:AssumeRole
+      Policies:
+        - PolicyName: CombinedLambdaS3Access
+          PolicyDocument:
+            Version: "2012-10-17"
+            Statement:
+              - Effect: Allow
+                Action:
+                  - logs:*
+                Resource: "*"
+              - Effect: Allow
+                Action:
+                  - s3:GetObject
+                  - s3:PutObject
+                  - s3:ListBucket
+                Resource:
+                  - !Sub arn:aws:s3:::${BucketName}
+                  - !Sub arn:aws:s3:::${BucketName}/*
+
+  CombinedSyncFunction:
+    Type: AWS::Lambda::Function
+    Properties:
+      FunctionName: combined_sync
+      Handler: bls_and_datausa_sync.lambda_handler
+      Runtime: python3.11
+      Timeout: 300
+      Role: !GetAtt CombinedLambdaExecutionRole.Arn
+      Code:
+        S3Bucket: !Ref BucketName
+        S3Key: !Sub "${S3Prefix}lambda-zips/combined_sync.zip"
+      Environment:
+        Variables:
+          BUCKET_NAME: !Ref BucketName
+          S3_PREFIX: "bls/"

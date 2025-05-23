@@ -1,0 +1,10 @@
+{
+  "Entries": [
+    {
+      "Source": "aws.lambda",
+      "DetailType": "Lambda Function Invocation Result - Success",
+      "Detail": "{\"result\":\"Succeeded\",\"function-name\":\"bls_file_sync\"}",
+      "EventBusName": "default"
+    }
+  ]
+}

@@ -1,12 +1,3 @@
-bls_data/files/pr.class
-bls_data/files/pr.contacts
-bls_data/files/pr.data.0.Current
-bls_data/files/pr.data.1.AllData
-bls_data/files/pr.duration
-bls_data/files/pr.footnote
-bls_data/files/pr.measure
-bls_data/files/pr.period
-bls_data/files/pr.seasonal
-bls_data/files/pr.sector
-bls_data/files/pr.series
-bls_data/files/pr.txt
+bls_data/files/
+.lambda_build/
+dist

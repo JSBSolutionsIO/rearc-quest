@@ -1,0 +1,85 @@
+AWSTemplateFormatVersion: '2010-09-09'
+Description: Step Function to run BLS sync and fetch DataUSA population on a daily schedule
+
+Parameters:
+  BLSFunctionName:
+    Type: String
+    Default: bls_file_sync
+  DataUSAFunctionName:
+    Type: String
+    Default: fetch_datausa_population
+  ScheduleExpression:
+    Type: String
+    Default: rate(1 day)
+    Description: How often to run the workflow (e.g., rate(1 day), cron(0 6 * * ? *))
+
+Resources:
+
+  StepFunctionRole:
+    Type: AWS::IAM::Role
+    Properties:
+      RoleName: BLSDataSyncStepRole
+      AssumeRolePolicyDocument:
+        Version: "2012-10-17"
+        Statement:
+          - Effect: Allow
+            Principal:
+              Service: states.amazonaws.com
+            Action: sts:AssumeRole
+      Policies:
+        - PolicyName: InvokeLambdas
+          PolicyDocument:
+            Version: "2012-10-17"
+            Statement:
+              - Effect: Allow
+                Action:
+                  - lambda:InvokeFunction
+                Resource:
+                  - !Sub arn:aws:lambda:${AWS::Region}:${AWS::AccountId}:function:${BLSFunctionName}
+                  - !Sub arn:aws:lambda:${AWS::Region}:${AWS::AccountId}:function:${DataUSAFunctionName}
+
+  BLSDataSyncStateMachine:
+    Type: AWS::StepFunctions::StateMachine
+    Properties:
+      StateMachineName: BLSDataSyncFlow
+      RoleArn: !GetAtt StepFunctionRole.Arn
+      DefinitionString: !Sub |
+        {
+          "Comment": "Run BLS sync then DataUSA fetch",
+          "StartAt": "RunBLS",
+          "States": {
+            "RunBLS": {
+              "Type": "Task",
+              "Resource": "arn:aws:lambda:${AWS::Region}:${AWS::AccountId}:function:${BLSFunctionName}",
+              "Next": "RunDataUSA"
+            },
+            "RunDataUSA": {
+              "Type": "Task",
+              "Resource": "arn:aws:lambda:${AWS::Region}:${AWS::AccountId}:function:${DataUSAFunctionName}",
+              "End": true
+            }
+          }
+        }
+
+  BLSDataSyncSchedule:
+    Type: AWS::Events::Rule
+    Properties:
+      Name: RunBLSDataSyncDaily
+      ScheduleExpression: !Ref ScheduleExpression
+      State: ENABLED
+      Targets:
+        - Arn: !GetAtt BLSDataSyncStateMachine.Arn
+          Id: TriggerStepFunction
+
+  AllowEventBridgeToStartStepFunction:
+    Type: AWS::IAM::Policy
+    Properties:
+      PolicyName: AllowEventBridgeToStartStepFunction
+      PolicyDocument:
+        Version: "2012-10-17"
+        Statement:
+          - Effect: Allow
+            Action: states:StartExecution
+            Resource: !GetAtt BLSDataSyncStateMachine.Arn
+      Roles:
+        - !Ref StepFunctionRole

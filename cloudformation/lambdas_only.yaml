@@ -1,0 +1,101 @@
+AWSTemplateFormatVersion: '2010-09-09'
+Description: Deploy two Lambda functions and chain them with EventBridge
+
+Parameters:
+  BucketName:
+    Type: String
+    Description: Name of the S3 bucket holding Lambda ZIPs and storing data
+  S3Prefix:
+    Type: String
+    Default: ""
+    Description: Optional prefix for ZIPs in the bucket
+
+Resources:
+
+  LambdaExecutionRole:
+    Type: AWS::IAM::Role
+    Properties:
+      RoleName: BasicLambdaExecutionRole
+      AssumeRolePolicyDocument:
+        Version: "2012-10-17"
+        Statement:
+          - Effect: Allow
+            Principal:
+              Service: lambda.amazonaws.com
+            Action: sts:AssumeRole
+      Policies:
+        - PolicyName: BasicLambdaPolicy
+          PolicyDocument:
+            Version: "2012-10-17"
+            Statement:
+              - Effect: Allow
+                Action:
+                  - logs:*
+                Resource: "*"
+              - Effect: Allow
+                Action:
+                  - s3:ListBucket
+                Resource: !Sub arn:aws:s3:::${BucketName}
+              - Effect: Allow
+                Action:
+                  - s3:GetObject
+                  - s3:PutObject
+                Resource: !Sub arn:aws:s3:::${BucketName}/*
+
+  BLSFileSyncFunction:
+    Type: AWS::Lambda::Function
+    Properties:
+      FunctionName: bls_file_sync
+      Handler: bls_file_sync.lambda_handler
+      Runtime: python3.11
+      Timeout: 300
+      Role: !GetAtt LambdaExecutionRole.Arn
+      Code:
+        S3Bucket: !Ref BucketName
+        S3Key: !Sub "${S3Prefix}lambda-zips/bls_file_sync.zip"
+      Environment:
+        Variables:
+          BUCKET_NAME: !Ref BucketName
+          S3_PREFIX: "bls/"
+
+  FetchDataUSAPopulationFunction:
+    Type: AWS::Lambda::Function
+    Properties:
+      FunctionName: fetch_datausa_population
+      Handler: fetch_datausa_population.lambda_handler
+      Runtime: python3.11
+      Timeout: 60
+      Role: !GetAtt LambdaExecutionRole.Arn
+      Code:
+        S3Bucket: !Ref BucketName
+        S3Key: !Sub "${S3Prefix}lambda-zips/fetch_datausa_population.zip"
+      Environment:
+        Variables:
+          BUCKET_NAME: !Ref BucketName
+
+  TriggerDataUSAFetch:
+    Type: AWS::Events::Rule
+    Properties:
+      Name: trigger-datausa-on-bls-success
+      Description: Trigger fetch_datausa_population when bls_file_sync completes successfully
+      EventPattern:
+        source:
+          - aws.lambda
+        detail-type:
+          - "Lambda Function Invocation Result - Success"
+        detail:
+          result:
+            - Succeeded
+          function-name:
+            - bls_file_sync
+      Targets:
+        - Arn: !GetAtt FetchDataUSAPopulationFunction.Arn
+          Id: FetchDataUSAInvoke
+
+  AllowEventBridgeInvokeFetchDataUSA:
+    Type: AWS::Lambda::Permission
+    Properties:
+      FunctionName: !Ref FetchDataUSAPopulationFunction
+      Action: lambda:InvokeFunction
+      Principal: events.amazonaws.com
+      SourceArn: !GetAtt TriggerDataUSAFetch.Arn

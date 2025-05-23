@@ -1,0 +1,31 @@
+AWSTemplateFormatVersion: '2010-09-09'
+Description: Create a public S3 bucket for Lambda deployment and data sync
+
+Resources:
+
+  BLSDataSyncBucket:
+    Type: AWS::S3::Bucket
+    Properties:
+      BucketName: !Sub rearc-quest-${AWS::AccountId}-${AWS::Region}
+      PublicAccessBlockConfiguration:
+        BlockPublicAcls: false
+        BlockPublicPolicy: false
+        IgnorePublicAcls: false
+        RestrictPublicBuckets: false
+
+  BLSBucketPolicy:
+    Type: AWS::S3::BucketPolicy
+    Properties:
+      Bucket: !Ref BLSDataSyncBucket
+      PolicyDocument:
+        Version: "2012-10-17"
+        Statement:
+          - Effect: Allow
+            Principal: "*"
+            Action: "s3:GetObject"
+            Resource: !Sub "arn:aws:s3:::${BLSDataSyncBucket}/*"
+
+Outputs:
+  BucketName:
+    Description: Name of the created public S3 bucket
+    Value: !Ref BLSDataSyncBucket
