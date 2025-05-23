@@ -1,0 +1,98 @@
+[
+  {
+    "file_name": "pr.class",
+    "url": "https://download.bls.gov/pub/time.series/pr/pr.class",
+    "last_updated_date": "9/13/2022",
+    "last_updated_time": "4:52 PM",
+    "last_updated_timestamp": "2022-09-13T16:52:00",
+    "file_size_bytes": 562
+  },
+  {
+    "file_name": "pr.contacts",
+    "url": "https://download.bls.gov/pub/time.series/pr/pr.contacts",
+    "last_updated_date": "5/8/2025",
+    "last_updated_time": "8:30 AM",
+    "last_updated_timestamp": "2025-05-08T08:30:00",
+    "file_size_bytes": 1552889
+  },
+  {
+    "file_name": "pr.data.0.Current",
+    "url": "https://download.bls.gov/pub/time.series/pr/pr.data.0.Current",
+    "last_updated_date": "5/8/2025",
+    "last_updated_time": "8:30 AM",
+    "last_updated_timestamp": "2025-05-08T08:30:00",
+    "file_size_bytes": 3176483
+  },
+  {
+    "file_name": "pr.data.1.AllData",
+    "url": "https://download.bls.gov/pub/time.series/pr/pr.data.1.AllData",
+    "last_updated_date": "5/8/2025",
+    "last_updated_time": "8:30 AM",
+    "last_updated_timestamp": "2025-05-08T08:30:00",
+    "file_size_bytes": 176
+  },
+  {
+    "file_name": "pr.duration",
+    "url": "https://download.bls.gov/pub/time.series/pr/pr.duration",
+    "last_updated_date": "5/8/2025",
+    "last_updated_time": "8:30 AM",
+    "last_updated_timestamp": "2025-05-08T08:30:00",
+    "file_size_bytes": 40
+  },
+  {
+    "file_name": "pr.footnote",
+    "url": "https://download.bls.gov/pub/time.series/pr/pr.footnote",
+    "last_updated_date": "5/8/2025",
+    "last_updated_time": "8:30 AM",
+    "last_updated_timestamp": "2025-05-08T08:30:00",
+    "file_size_bytes": 745
+  },
+  {
+    "file_name": "pr.measure",
+    "url": "https://download.bls.gov/pub/time.series/pr/pr.measure",
+    "last_updated_date": "1/7/1994",
+    "last_updated_time": "3:53 PM",
+    "last_updated_timestamp": "1994-01-07T15:53:00",
+    "file_size_bytes": 146
+  },
+  {
+    "file_name": "pr.period",
+    "url": "https://download.bls.gov/pub/time.series/pr/pr.period",
+    "last_updated_date": "11/18/2011",
+    "last_updated_time": "4:05 PM",
+    "last_updated_timestamp": "2011-11-18T16:05:00",
+    "file_size_bytes": 79
+  },
+  {
+    "file_name": "pr.seasonal",
+    "url": "https://download.bls.gov/pub/time.series/pr/pr.seasonal",
+    "last_updated_date": "5/8/2025",
+    "last_updated_time": "8:30 AM",
+    "last_updated_timestamp": "2025-05-08T08:30:00",
+    "file_size_bytes": 263
+  },
+  {
+    "file_name": "pr.sector",
+    "url": "https://download.bls.gov/pub/time.series/pr/pr.sector",
+    "last_updated_date": "5/8/2025",
+    "last_updated_time": "8:30 AM",
+    "last_updated_timestamp": "2025-05-08T08:30:00",
+    "file_size_bytes": 15657
+  },
+  {
+    "file_name": "pr.series",
+    "url": "https://download.bls.gov/pub/time.series/pr/pr.series",
+    "last_updated_date": "11/17/2011",
+    "last_updated_time": "5:11 PM",
+    "last_updated_timestamp": "2011-11-17T17:11:00",
+    "file_size_bytes": 18343
+  },
+  {
+    "file_name": "pr.txt",
+    "url": "https://download.bls.gov/pub/time.series/pr/pr.txt",
+    "last_updated_date": "",
+    "last_updated_time": "",
+    "last_updated_timestamp": null,
+    "file_size_bytes": null
+  }
+]
